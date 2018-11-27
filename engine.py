@@ -134,8 +134,13 @@ class MariEngine(sgtk.platform.Engine):
             self.log_debug("Updating the Work Area on the current project to '%s'" % self.context)
             self.__metadata_mgr.set_project_metadata(current_project, self.context)
 
-        # connect to Mari project events:
+
+        # connect to Mari project events
+        # try disconnecting initially because this seems to be called multiple times
+        mari.utils.disconnect(mari.projects.opened, self.__on_project_opened)
+        mari.utils.disconnect(mari.projects.saved, self.__on_project_saved)
         mari.utils.connect(mari.projects.opened, self.__on_project_opened)
+        mari.utils.connect(mari.projects.saved, self.__on_project_saved)
 
         self._run_app_instance_commands()
 
@@ -166,6 +171,7 @@ class MariEngine(sgtk.platform.Engine):
 
         # disconnect from Mari project events:
         mari.utils.disconnect(mari.projects.opened, self.__on_project_opened)
+        mari.utils.disconnect(mari.projects.saved, self.__on_project_saved)
 
     @property
     def has_ui(self):
@@ -439,6 +445,29 @@ class MariEngine(sgtk.platform.Engine):
 
         # change current engine context:
         sgtk.platform.change_context(ctx)
+
+    def __on_project_saved(self, saved_project):
+        workfiles_app = self.apps.get("tk-multi-workfiles2")
+        proj_mgr_app = self.apps.get("tk-mari-projectmanager")
+        if not workfiles_app or not proj_mgr_app:
+            self.log_error("Unable to find workfiles or projectmanager app. Not exporting msf file.")
+            return
+
+        fields = self.context.as_template_fields()
+
+        # use project name to obtain "name" field
+        project_name_template = proj_mgr_app.get_template("template_new_project_name")
+        fields.update(project_name_template.get_fields(saved_project.name()))
+
+        # use project metadata to get the "version" field
+        # assume 1 if no version is set yet
+        fields["version"] = self.__metadata_mgr.get_project_version(saved_project) or 1
+
+        work_template = workfiles_app.get_template("template_work")
+        work_file_path = work_template.apply_fields(fields)
+
+        self.log_debug("Exporting mari session file to: %s" % work_file_path)
+        mari.session.exportSession(work_file_path)
 
     def _run_app_instance_commands(self):
         """
