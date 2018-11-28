@@ -156,7 +156,7 @@ class MetadataManager(object):
         metadata = self.__get_metadata(mari_project, MetadataManager.__PROJECT_METADATA_INFO)
         return metadata.get("version")
 
-    def set_project_metadata(self, mari_project, ctx, version=None):
+    def set_project_metadata(self, mari_project, ctx):
         """
         Set the Toolkit metadata on a project
 
@@ -172,8 +172,6 @@ class MetadataManager(object):
             metadata["step_id"] = ctx.step["id"]
         if ctx.task:
             metadata["task_id"] = ctx.task["id"]
-        if version:
-            metadata["version"] = version
 
         self.__set_metadata(mari_project, metadata, MetadataManager.__PROJECT_METADATA_INFO)
 
