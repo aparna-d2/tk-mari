@@ -116,29 +116,10 @@ class MariEngine(sgtk.platform.Engine):
         """
         Do any initialization after apps have been loaded
         """
-        if self.has_ui:
-            # create the Shotgun menu
-            tk_mari = self.import_module("tk_mari")
-            self._menu_generator = tk_mari.MenuGenerator(self)
-            self._menu_generator.create_menu()
-
-        # Update the current Mari project with the current context so that next time this project is
-        # opened, the work area changes accordingly.
-        #
-        # Note, currently this will happen every time as long as Shotgun is running so it will update
-        # any opened projects even if they were never previously opened in Shotgun...  This just adds
-        # some metadata to the project though so shouldn't be a big deal!  If it is then we should
-        # make it less automatic.
-        current_project = mari.projects.current()
-        if current_project:
-            self.log_debug("Updating the Work Area on the current project to '%s'" % self.context)
-            self.__metadata_mgr.set_project_metadata(current_project, self.context)
-
+        self.create_menu()
 
         # connect to Mari project events
         # try disconnecting initially because this seems to be called multiple times
-        mari.utils.disconnect(mari.projects.opened, self.__on_project_opened)
-        mari.utils.disconnect(mari.projects.saved, self.__on_project_saved)
         mari.utils.connect(mari.projects.opened, self.__on_project_opened)
         mari.utils.connect(mari.projects.saved, self.__on_project_saved)
 
@@ -157,7 +138,8 @@ class MariEngine(sgtk.platform.Engine):
             # destroy the menu:
             self._menu_generator.destroy_menu()
 
-        self.post_app_init()
+        self.create_menu()
+        self._run_app_instance_commands()
 
     def destroy_engine(self):
         """
@@ -179,6 +161,13 @@ class MariEngine(sgtk.platform.Engine):
         Detect and return if mari is not running in terminal mode
         """
         return not mari.app.inTerminalMode()
+
+    def create_menu(self):
+        if self.has_ui:
+            # create the Shotgun menu
+            tk_mari = self.import_module("tk_mari")
+            self._menu_generator = tk_mari.MenuGenerator(self)
+            self._menu_generator.create_menu()
 
     #####################################################################################
     # Panel Support
@@ -302,6 +291,18 @@ class MariEngine(sgtk.platform.Engine):
                             in the Mari entity.
         """
         return self.__metadata_mgr.get_metadata(mari_entity)
+
+    def set_project_metadata(self, mari_project, context):
+        """
+        Update the Mari project with the given context so that next time this project is
+        opened, the work area changes accordingly.
+
+        :param mari_project:    The mari project entity to set the metadata on
+        :param context:         The context used to create metadata
+        """
+        self.log_debug(
+            "Updating the Work Area on the %s project to '%s'" % (mari_project.name(), context))
+        self.__metadata_mgr.set_project_metadata(mari_project, context)
 
     def set_project_version(self, mari_project, version):
         """
