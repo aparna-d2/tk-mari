@@ -447,6 +447,10 @@ class MariEngine(sgtk.platform.Engine):
         sgtk.platform.change_context(ctx)
 
     def __on_project_saved(self, saved_project):
+        if not self.__metadata_mgr.get_metadata(saved_project):
+            # this is not an sgtk compliant project
+            return
+
         workfiles_app = self.apps.get("tk-multi-workfiles2")
         proj_mgr_app = self.apps.get("tk-mari-projectmanager")
         if not workfiles_app or not proj_mgr_app:
@@ -457,6 +461,9 @@ class MariEngine(sgtk.platform.Engine):
 
         # use project name to obtain "name" field
         project_name_template = proj_mgr_app.get_template("template_new_project_name")
+        if not project_name_template.validate(saved_project.name()):
+            # this is not an sgtk compliant project
+            return
         fields.update(project_name_template.get_fields(saved_project.name()))
 
         # use project metadata to get the "version" field
