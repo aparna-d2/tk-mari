@@ -292,18 +292,6 @@ class MariEngine(sgtk.platform.Engine):
         """
         return self.__metadata_mgr.get_metadata(mari_entity)
 
-    def set_project_metadata(self, mari_project, context):
-        """
-        Update the Mari project with the given context so that next time this project is
-        opened, the work area changes accordingly.
-
-        :param mari_project:    The mari project entity to set the metadata on
-        :param context:         The context used to create metadata
-        """
-        self.log_debug(
-            "Updating the Work Area on the %s project to '%s'" % (mari_project.name(), context))
-        self.__metadata_mgr.set_project_metadata(mari_project, context)
-
     def set_project_version(self, mari_project, version):
         """
         Set the version metadata on a project
@@ -416,6 +404,11 @@ class MariEngine(sgtk.platform.Engine):
             self.log_debug("Work area unchanged - the opened project is not Shotgun aware!")
             return
 
+        # for backwards compatibility
+        # set version of any project containing sgtk metadata, but no version to 1
+        if not self.__metadata_mgr.get_project_version(opened_project):
+            self.__metadata_mgr.set_project_version(opened_project, 1)
+
         # try to determine the project context from the metadata:
         ctx_entity = None
         if md.get("task_id"):
@@ -468,8 +461,7 @@ class MariEngine(sgtk.platform.Engine):
         fields.update(project_name_template.get_fields(saved_project.name()))
 
         # use project metadata to get the "version" field
-        # assume 1 if no version is set yet
-        fields["version"] = self.__metadata_mgr.get_project_version(saved_project) or 1
+        fields["version"] = self.__metadata_mgr.get_project_version(saved_project)
 
         work_template = workfiles_app.get_template("template_work")
         work_file_path = work_template.apply_fields(fields)
