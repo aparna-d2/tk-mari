@@ -118,8 +118,7 @@ class MariEngine(sgtk.platform.Engine):
         """
         self.create_menu()
 
-        # connect to Mari project events
-        # try disconnecting initially because this seems to be called multiple times
+        # connect to Mari project events:
         mari.utils.connect(mari.projects.opened, self.__on_project_opened)
         mari.utils.connect(mari.projects.saved, self.__on_project_saved)
 
